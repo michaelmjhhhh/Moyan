@@ -8,6 +8,7 @@ frontend/dist/*
 !frontend/dist/.gitkeep
 frontend/node_modules/
 node_modules/
+*.tsbuildinfo
 
 # Local application data
 *.melev
