@@ -167,7 +167,7 @@ export function App() {
                       aria-label={`${dictionary.name}${dictionary.enabled ? '：停用' : '：启用'}`}
                       onClick={() => toggleDictionary(dictionary.id)}
                     >
-                      {dictionary.enabled ? '启用' : '停用'}
+                      {dictionary.enabled ? '停用' : '启用'}
                     </button>
                   </div>
                 )) : (
