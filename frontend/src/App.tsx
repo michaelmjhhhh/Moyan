@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { chooseAndOpenDictionary, DictionaryEntry, lookupWord } from './api'
+import { chooseAndOpenDictionary, DictionaryEntry, lookupWords } from './api'
 
 type Dictionary = {
   id: string
@@ -9,7 +9,6 @@ type Dictionary = {
 }
 
 type Entry = DictionaryEntry & {
-  dictionary: string
   pronunciation?: string
 }
 
@@ -30,11 +29,10 @@ export function App() {
   useEffect(() => {
     let cancelled = false
     setIsSearching(true)
-    lookupWord(submittedQuery)
-      .then((entry) => {
+    lookupWords(submittedQuery)
+      .then((entries) => {
         if (cancelled) return
-        const activeDictionary = dictionaries.find((dictionary) => dictionary.enabled)?.name ?? '词典'
-        setResults(entry ? [{ ...entry, dictionary: activeDictionary }] : [])
+        setResults(entries)
       })
       .catch(() => {
         if (!cancelled) setResults([])
@@ -43,16 +41,15 @@ export function App() {
         if (!cancelled) setIsSearching(false)
       })
     return () => { cancelled = true }
-  }, [submittedQuery, dictionaries])
+  }, [submittedQuery])
 
   async function importDictionary() {
     try {
       const name = await chooseAndOpenDictionary()
       if (!name) return
-      setDictionaries((current) => [
-        ...current.map((dictionary) => ({ ...dictionary, enabled: false })),
-        { id: name, name, language: 'MDX', enabled: true },
-      ])
+      setDictionaries((current) => current.some((dictionary) => dictionary.name === name)
+        ? current
+        : [...current, { id: name, name, language: 'MDX', enabled: true }])
     } catch {
       // The native dialog and parser report their errors through the Wails shell.
     }
@@ -139,8 +136,8 @@ export function App() {
           {results.length ? (
             <div className="entries">
               {results.map((entry) => (
-                <article className="entry" key={`${entry.dictionary}-${entry.Headword}`}>
-                  <div className="entry-source">{entry.dictionary}</div>
+                <article className="entry" key={`${entry.Dictionary}-${entry.Headword}`}>
+                  <div className="entry-source">{entry.Dictionary}</div>
                   <h1>{entry.Headword}</h1>
                   {entry.pronunciation && <div className="pronunciation">{entry.pronunciation}</div>}
                   <DictionaryFrame html={entry.HTML} css={entry.CSS} />

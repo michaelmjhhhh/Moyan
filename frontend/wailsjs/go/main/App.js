@@ -18,6 +18,10 @@ export function LookupWord(arg1) {
   return window['go']['main']['App']['LookupWord'](arg1);
 }
 
+export function LookupWords(arg1) {
+  return window['go']['main']['App']['LookupWords'](arg1);
+}
+
 export function OpenDictionary(arg1) {
   return window['go']['main']['App']['OpenDictionary'](arg1);
 }

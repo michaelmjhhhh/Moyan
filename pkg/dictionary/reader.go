@@ -28,9 +28,10 @@ var (
 )
 
 type Entry struct {
-	Headword string
-	HTML     string
-	CSS      string
+	Dictionary string
+	Headword   string
+	HTML       string
+	CSS        string
 }
 
 type Reader struct {
@@ -93,9 +94,10 @@ func (r *Reader) Lookup(headword string) (Entry, error) {
 	})
 	stylesheet := r.stylesheet + loadLinkedMDDStylesheets(htmlText, r.directory, r.mdds)
 	return Entry{
-		Headword: trimmed,
-		HTML:     htmlText,
-		CSS:      stylesheet,
+		Dictionary: r.Name(),
+		Headword:   trimmed,
+		HTML:       htmlText,
+		CSS:        stylesheet,
 	}, nil
 }
 

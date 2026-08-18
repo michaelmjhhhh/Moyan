@@ -12,9 +12,9 @@ import (
 type App struct {
 	ctx context.Context
 
-	mu     sync.RWMutex
-	reader *dictionary.Reader
-	name   string
+	mu      sync.RWMutex
+	readers []*dictionary.Reader
+	name    string
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -33,10 +33,7 @@ func (a *App) OpenDictionary(path string) error {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.reader != nil {
-		a.reader.Close()
-	}
-	a.reader = reader
+	a.readers = append(a.readers, reader)
 	a.name = reader.Name()
 	return nil
 }
@@ -71,18 +68,33 @@ func (a *App) CurrentDictionary() string {
 func (a *App) CloseDictionary() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.reader != nil {
-		a.reader.Close()
-		a.reader = nil
+	for _, reader := range a.readers {
+		reader.Close()
 	}
+	a.readers = nil
 	a.name = ""
 }
 
 func (a *App) LookupWord(word string) (dictionary.Entry, error) {
+	entries, err := a.LookupWords(word)
+	if err != nil {
+		return dictionary.Entry{}, err
+	}
+	return entries[0], nil
+}
+
+func (a *App) LookupWords(word string) ([]dictionary.Entry, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	if a.reader == nil {
-		return dictionary.Entry{}, dictionary.ErrNotFound
+	var entries []dictionary.Entry
+	for _, reader := range a.readers {
+		entry, err := reader.Lookup(word)
+		if err == nil {
+			entries = append(entries, entry)
+		}
 	}
-	return a.reader.Lookup(word)
+	if len(entries) == 0 {
+		return nil, dictionary.ErrNotFound
+	}
+	return entries, nil
 }

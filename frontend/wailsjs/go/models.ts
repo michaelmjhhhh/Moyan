@@ -1,6 +1,7 @@
 export namespace dictionary {
 	
 	export class Entry {
+	    Dictionary: string;
 	    Headword: string;
 	    HTML: string;
 	    CSS: string;
@@ -11,6 +12,7 @@ export namespace dictionary {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Dictionary = source["Dictionary"];
 	        this.Headword = source["Headword"];
 	        this.HTML = source["HTML"];
 	        this.CSS = source["CSS"];
