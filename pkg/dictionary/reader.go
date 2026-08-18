@@ -34,6 +34,7 @@ type Entry struct {
 
 type Reader struct {
 	mdx        *mdictcore.Mdict
+	mdds       []*mdictcore.Mdict
 	stylesheet string
 }
 
@@ -51,11 +52,18 @@ func Open(path string) (*Reader, error) {
 	if err := mdx.BuildIndex(); err != nil {
 		return nil, fmt.Errorf("build MDX index: %w", err)
 	}
-	stylesheet, err := loadStylesheets(filepath.Dir(path))
+	directory := filepath.Dir(path)
+	mdds, err := loadMDDs(directory)
+	if err != nil {
+		return nil, fmt.Errorf("load dictionary resources: %w", err)
+	}
+	stylesheet, err := loadStylesheetsWithResolver(directory, func(reference string) ([]byte, bool) {
+		return lookupMDDResource(mdds, reference)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("load dictionary CSS: %w", err)
 	}
-	return &Reader{mdx: mdx, stylesheet: stylesheet}, nil
+	return &Reader{mdx: mdx, mdds: mdds, stylesheet: stylesheet}, nil
 }
 
 func (r *Reader) Name() string {
@@ -85,6 +93,10 @@ func (r *Reader) Lookup(headword string) (Entry, error) {
 }
 
 func loadStylesheets(directory string) (string, error) {
+	return loadStylesheetsWithResolver(directory, nil)
+}
+
+func loadStylesheetsWithResolver(directory string, lookup resourceLookup) (string, error) {
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return "", err
@@ -117,7 +129,7 @@ func loadStylesheets(directory string) (string, error) {
 		if styles.Len() > 0 {
 			styles.WriteString("\n")
 		}
-		inlined, err := inlineCSSResources(string(data), filepath.Join(directory, name))
+		inlined, err := inlineCSSResourcesWithLookup(string(data), filepath.Join(directory, name), lookup)
 		if err != nil {
 			return "", err
 		}
@@ -126,7 +138,13 @@ func loadStylesheets(directory string) (string, error) {
 	return styles.String(), nil
 }
 
+type resourceLookup func(reference string) ([]byte, bool)
+
 func inlineCSSResources(css, stylesheetPath string) (string, error) {
+	return inlineCSSResourcesWithLookup(css, stylesheetPath, nil)
+}
+
+func inlineCSSResourcesWithLookup(css, stylesheetPath string, lookup resourceLookup) (string, error) {
 	directory := filepath.Dir(stylesheetPath)
 	return cssURLPattern.ReplaceAllStringFunc(css, func(match string) string {
 		submatches := cssURLPattern.FindStringSubmatch(match)
@@ -145,16 +163,18 @@ func inlineCSSResources(css, stylesheetPath string) (string, error) {
 		if err != nil || parsed.Path == "" {
 			return `url("")`
 		}
-		resourcePath, err := boundedResourcePath(directory, parsed.Path)
-		if err != nil {
-			return `url("")`
+		var data []byte
+		resourcePath, pathErr := boundedResourcePath(directory, parsed.Path)
+		if pathErr == nil {
+			info, statErr := os.Lstat(resourcePath)
+			if statErr == nil && info.Mode().IsRegular() && info.Size() <= maxResourceBytes {
+				data, _ = os.ReadFile(resourcePath)
+			}
 		}
-		info, err := os.Lstat(resourcePath)
-		if err != nil || !info.Mode().IsRegular() || info.Size() > maxResourceBytes {
-			return `url("")`
+		if len(data) == 0 && lookup != nil {
+			data, _ = lookup(reference)
 		}
-		data, err := os.ReadFile(resourcePath)
-		if err != nil || int64(len(data)) > maxResourceBytes {
+		if len(data) == 0 || int64(len(data)) > maxResourceBytes {
 			return `url("")`
 		}
 		contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(resourcePath)))
@@ -181,8 +201,61 @@ func boundedResourcePath(directory, reference string) (string, error) {
 	return candidate, nil
 }
 
+func loadMDDs(directory string) ([]*mdictcore.Mdict, error) {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".mdd") {
+			continue
+		}
+		info, err := os.Lstat(filepath.Join(directory, entry.Name()))
+		if err != nil {
+			return nil, err
+		}
+		if info.Mode().IsRegular() {
+			names = append(names, entry.Name())
+		}
+	}
+	sort.Strings(names)
+	mdds := make([]*mdictcore.Mdict, 0, len(names))
+	for _, name := range names {
+		mdd, err := mdictcore.New(filepath.Join(directory, name))
+		if err != nil {
+			return nil, fmt.Errorf("open %s: %w", name, err)
+		}
+		if err := mdd.BuildIndex(); err != nil {
+			return nil, fmt.Errorf("index %s: %w", name, err)
+		}
+		mdds = append(mdds, mdd)
+	}
+	return mdds, nil
+}
+
+func lookupMDDResource(mdds []*mdictcore.Mdict, reference string) ([]byte, bool) {
+	parsed, err := url.Parse(reference)
+	if err != nil || parsed.Path == "" {
+		return nil, false
+	}
+	path := strings.ReplaceAll(parsed.Path, "\\", "/")
+	path = strings.TrimLeft(path, "/")
+	candidates := []string{parsed.Path, "\\" + path, path}
+	for _, mdd := range mdds {
+		for _, candidate := range candidates {
+			data, err := mdd.Lookup(candidate)
+			if err == nil && len(data) > 0 {
+				return data, true
+			}
+		}
+	}
+	return nil, false
+}
+
 func (r *Reader) Close() {
 	if r != nil {
 		r.mdx = nil
+		r.mdds = nil
 	}
 }
