@@ -107,8 +107,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #1b365d; outline-
 .text-button { padding: 0; color: #1b365d; font-size: 12px; }
 .text-button.is-active { text-decoration: underline; text-underline-offset: 4px; }
 .text-button:disabled { color: #9d9b92; cursor: wait; }
-.status-message { margin: 16px 8px 0; color: #68675f; font-size: 11px; line-height: 1.5; }
-.dictionary-list, .history-list { display: grid; gap: 3px; }
+.status-message { margin: 16px 0 0; color: #68675f; font-size: 11px; line-height: 1.5; }
+.dictionary-list, .history-list { display: grid; gap: 6px; }
+.dictionary-row { display: flex; align-items: stretch; gap: 6px; }
 .dictionary-item, .history-item {
   display: flex;
   align-items: center;
@@ -120,12 +121,18 @@ button:focus-visible, input:focus-visible { outline: 2px solid #1b365d; outline-
   text-align: left;
   cursor: pointer;
 }
+.dictionary-item { flex: 1; min-width: 0; }
 .dictionary-item:hover, .history-item:hover, .history-item.is-current, .dictionary-item.is-selected { background: #ebe9df; }
 .dictionary-item.is-selected { box-shadow: inset 2px 0 #1b365d; }
-.dictionary-item strong { display: block; font-size: 13px; font-weight: 500; }
+.dictionary-label { min-width: 0; }
+.dictionary-item strong { display: block; overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .dictionary-item small { display: block; margin-top: 3px; color: #89877e; font-size: 11px; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #b9b6ac; }
+.status-dot { width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: #b9b6ac; }
 .is-enabled .status-dot { background: #1b365d; }
+.dictionary-toggle { flex: 0 0 46px; border: 1px solid #d8d4c9; color: #8b897f; background: transparent; cursor: pointer; font-size: 10px; }
+.dictionary-toggle:hover, .dictionary-toggle.is-enabled { border-color: #1b365d; color: #1b365d; }
+.dictionary-empty { padding: 10px 8px; color: #68675f; font-size: 13px; line-height: 1.7; }
+.dictionary-empty span { color: #9d9b92; font-size: 11px; }
 .history-item { color: #58574f; font-size: 13px; }
 
 .reading-pane { flex: 1; min-width: 0; max-width: 860px; padding: 52px clamp(28px, 7vw, 110px); }
@@ -156,7 +163,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #1b365d; outline-
   .topbar { gap: 16px; padding: 0 18px; }
   .wordmark { min-width: auto; }
   .wordmark > span:last-child, .quiet-button { display: none; }
-  .sidebar { flex-basis: 210px; padding: 24px 14px; }
+  .sidebar { flex-basis: 230px; padding: 24px 14px; }
   .reading-pane { padding: 34px 22px; }
 }
 

@@ -12,17 +12,14 @@ type Entry = DictionaryEntry & {
   pronunciation?: string
 }
 
-const initialDictionaries: Dictionary[] = [
-  { id: 'cc-cedict', name: 'CC-CEDICT', language: '中英', enabled: true },
-  { id: 'moyan-sample', name: 'Moyan Sample', language: '英英', enabled: false },
-]
+const initialDictionaries: Dictionary[] = []
 
 export function App() {
-  const [query, setQuery] = useState('你好')
-  const [submittedQuery, setSubmittedQuery] = useState('你好')
+  const [query, setQuery] = useState('')
+  const [submittedQuery, setSubmittedQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedDictionary, setSelectedDictionary] = useState<string | null>(null)
-  const [history, setHistory] = useState(['你好'])
+  const [history, setHistory] = useState<string[]>([])
   const [dictionaries, setDictionaries] = useState(initialDictionaries)
   const [results, setResults] = useState<Entry[]>([])
   const [candidates, setCandidates] = useState<string[]>([])
@@ -30,11 +27,16 @@ export function App() {
   const [isImporting, setIsImporting] = useState(false)
   const [importStatus, setImportStatus] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const visibleResults = selectedDictionary
-    ? results.filter((entry) => entry.Dictionary === selectedDictionary)
-    : results
+  const enabledNames = new Set(dictionaries.filter((dictionary) => dictionary.enabled).map((dictionary) => dictionary.name))
+  const visibleResults = results.filter((entry) => enabledNames.has(entry.Dictionary) && (!selectedDictionary || entry.Dictionary === selectedDictionary))
 
   useEffect(() => {
+    if (!submittedQuery) {
+      setResults([])
+      setCandidates([])
+      setIsSearching(false)
+      return
+    }
     let cancelled = false
     setIsSearching(true)
     setCandidates([])
@@ -68,6 +70,15 @@ export function App() {
     return () => window.removeEventListener('keydown', handleShortcut)
   }, [])
 
+  function toggleDictionary(id: string) {
+    const dictionary = dictionaries.find((item) => item.id === id)
+    if (!dictionary) return
+    setDictionaries((current) => current.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item))
+    if (dictionary.enabled && selectedDictionary === dictionary.name) {
+      setSelectedDictionary(null)
+    }
+  }
+
   async function importDictionary() {
     setIsImporting(true)
     setImportStatus('正在导入词典…')
@@ -78,7 +89,7 @@ export function App() {
         return
       }
       setDictionaries((current) => current.some((dictionary) => dictionary.name === name)
-        ? current
+        ? current.map((dictionary) => dictionary.name === name ? { ...dictionary, enabled: true } : dictionary)
         : [...current, { id: name, name, language: 'MDX', enabled: true }])
       setSelectedDictionary(name)
       setImportStatus(`已导入：${name}`)
@@ -135,21 +146,33 @@ export function App() {
                 </span>
               </div>
               <div className="dictionary-list">
-                {dictionaries.map((dictionary) => (
-                  <button
-                    className={`dictionary-item${dictionary.enabled ? ' is-enabled' : ''}${selectedDictionary === dictionary.name ? ' is-selected' : ''}`}
-                    key={dictionary.id}
-                    type="button"
-                    aria-pressed={selectedDictionary === dictionary.name}
-                    onClick={() => setSelectedDictionary((current) => current === dictionary.name ? null : dictionary.name)}
-                  >
-                    <span className="status-dot" aria-hidden="true" />
-                    <span>
-                      <strong>{dictionary.name}</strong>
-                      <small>{dictionary.language}</small>
-                    </span>
-                  </button>
-                ))}
+                {dictionaries.length > 0 ? dictionaries.map((dictionary) => (
+                  <div className="dictionary-row" key={dictionary.id}>
+                    <button
+                      className={`dictionary-item${dictionary.enabled ? ' is-enabled' : ''}${selectedDictionary === dictionary.name ? ' is-selected' : ''}`}
+                      type="button"
+                      aria-pressed={selectedDictionary === dictionary.name}
+                      onClick={() => setSelectedDictionary((current) => current === dictionary.name ? null : dictionary.name)}
+                    >
+                      <span className="status-dot" aria-hidden="true" />
+                      <span className="dictionary-label">
+                        <strong>{dictionary.name}</strong>
+                        <small>{dictionary.language}</small>
+                      </span>
+                    </button>
+                    <button
+                      className={`dictionary-toggle${dictionary.enabled ? ' is-enabled' : ''}`}
+                      type="button"
+                      aria-pressed={dictionary.enabled}
+                      aria-label={`${dictionary.name}${dictionary.enabled ? '：停用' : '：启用'}`}
+                      onClick={() => toggleDictionary(dictionary.id)}
+                    >
+                      {dictionary.enabled ? '启用' : '停用'}
+                    </button>
+                  </div>
+                )) : (
+                  <div className="dictionary-empty">还没有词典<br /><span>点击右上角“导入”开始</span></div>
+                )}
               </div>
             </section>
 
@@ -175,8 +198,8 @@ export function App() {
 
         <section className="reading-pane" aria-live="polite">
           <div className="reading-header">
-            <span className="result-kicker">{isSearching ? '查询中' : visibleResults.length ? '词条' : '未找到'}</span>
-            <span className="result-query">{submittedQuery}</span>
+            <span className="result-kicker">{isSearching ? '查询中' : visibleResults.length ? '词条' : submittedQuery ? '未找到' : '准备就绪'}</span>
+            <span className="result-query">{submittedQuery || '导入词典后开始查词'}</span>
           </div>
           {visibleResults.length ? (
             <div className="entries">
@@ -191,7 +214,7 @@ export function App() {
             </div>
           ) : (
             <div className="empty-state">
-              <p>{selectedDictionary && results.length ? `“${selectedDictionary}”中没有找到“${submittedQuery}”` : `没有找到“${submittedQuery}”`}</p>
+              <p>{!submittedQuery ? '从一本词典开始' : selectedDictionary && results.length ? `“${selectedDictionary}”中没有找到“${submittedQuery}”` : results.length && !visibleResults.length ? '当前词典均已停用' : `没有找到“${submittedQuery}”`}</p>
               {candidates.length > 0 ? (
                 <>
                   <span>你是不是想查：</span>
@@ -203,7 +226,7 @@ export function App() {
                     ))}
                   </div>
                 </>
-              ) : <span>试试其他词头，或导入一本词典。</span>}
+              ) : <span>{!submittedQuery ? '点击左侧“导入”，选择一个 MDX 词典。' : '试试其他词头，或导入一本词典。'}</span>}
             </div>
           )}
         </section>
