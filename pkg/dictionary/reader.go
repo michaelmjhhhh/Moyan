@@ -88,6 +88,9 @@ func (r *Reader) Lookup(headword string) (Entry, error) {
 		return Entry{}, fmt.Errorf("%w: %s", ErrNotFound, trimmed)
 	}
 	htmlText := strings.TrimRight(string(html), "\x00")
+	htmlText = inlineHTMLResources(htmlText, r.directory, func(reference string) ([]byte, bool) {
+		return lookupMDDResource(r.mdds, reference)
+	})
 	stylesheet := r.stylesheet + loadLinkedMDDStylesheets(htmlText, r.directory, r.mdds)
 	return Entry{
 		Headword: trimmed,
@@ -167,27 +170,64 @@ func inlineCSSResourcesWithLookup(css, stylesheetPath string, lookup resourceLoo
 		if err != nil || parsed.Path == "" {
 			return `url("")`
 		}
-		var data []byte
-		resourcePath, pathErr := boundedResourcePath(directory, parsed.Path)
-		if pathErr == nil {
-			info, statErr := os.Lstat(resourcePath)
-			if statErr == nil && info.Mode().IsRegular() && info.Size() <= maxResourceBytes {
-				data, _ = os.ReadFile(resourcePath)
-			}
-		}
-		if len(data) == 0 && lookup != nil {
-			data, _ = lookup(reference)
-		}
-		if len(data) == 0 || int64(len(data)) > maxResourceBytes {
+		dataURL, ok := resolveResourceDataURL(reference, directory, lookup)
+		if !ok {
 			return `url("")`
 		}
-		contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(resourcePath)))
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
-		encoded := base64.StdEncoding.EncodeToString(data)
-		return `url("data:` + contentType + `;base64,` + encoded + `")`
+		return `url("` + dataURL + `")`
 	}), nil
+}
+
+var htmlResourcePattern = regexp.MustCompile(`(?i)(\b(?:src|poster)\s*=\s*["'])([^"']+)(["'])`)
+
+func inlineHTMLResources(html, directory string, lookup resourceLookup) string {
+	return htmlResourcePattern.ReplaceAllStringFunc(html, func(match string) string {
+		submatches := htmlResourcePattern.FindStringSubmatch(match)
+		if len(submatches) != 4 {
+			return match
+		}
+		dataURL, ok := resolveResourceDataURL(submatches[2], directory, lookup)
+		if !ok {
+			return submatches[1] + "" + submatches[3]
+		}
+		return submatches[1] + dataURL + submatches[3]
+	})
+}
+
+func resolveResourceDataURL(reference, directory string, lookup resourceLookup) (string, bool) {
+	reference = strings.TrimSpace(reference)
+	if reference == "" || strings.HasPrefix(strings.ToLower(reference), "data:") {
+		return reference, reference != ""
+	}
+	lower := strings.ToLower(reference)
+	if strings.HasPrefix(lower, "http:") || strings.HasPrefix(lower, "https:") || strings.HasPrefix(reference, "//") {
+		return "", false
+	}
+	parsed, err := url.Parse(reference)
+	if err != nil || parsed.Path == "" {
+		return "", false
+	}
+	var data []byte
+	contentType := ""
+	resourcePath, pathErr := boundedResourcePath(directory, parsed.Path)
+	if pathErr == nil {
+		info, statErr := os.Lstat(resourcePath)
+		if statErr == nil && info.Mode().IsRegular() && info.Size() <= maxResourceBytes {
+			data, _ = os.ReadFile(resourcePath)
+			contentType = mime.TypeByExtension(strings.ToLower(filepath.Ext(resourcePath)))
+		}
+	}
+	if len(data) == 0 && lookup != nil {
+		data, _ = lookup(reference)
+		contentType = mime.TypeByExtension(strings.ToLower(filepath.Ext(parsed.Path)))
+	}
+	if len(data) == 0 || int64(len(data)) > maxResourceBytes {
+		return "", false
+	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	return "data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(data), true
 }
 
 func boundedResourcePath(directory, reference string) (string, error) {
