@@ -1,4 +1,5 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
+import { DictionaryEntry, lookupWord } from './api'
 
 type Dictionary = {
   id: string
@@ -7,11 +8,9 @@ type Dictionary = {
   enabled: boolean
 }
 
-type Entry = {
+type Entry = DictionaryEntry & {
   dictionary: string
-  headword: string
   pronunciation?: string
-  definitions: string[]
 }
 
 const dictionaries: Dictionary[] = [
@@ -19,30 +18,29 @@ const dictionaries: Dictionary[] = [
   { id: 'moyan-sample', name: 'Moyan Sample', language: '英英', enabled: false },
 ]
 
-const sampleEntries: Record<string, Entry> = {
-  '你好': {
-    dictionary: 'CC-CEDICT',
-    headword: '你好',
-    pronunciation: 'nǐ hǎo',
-    definitions: ['hello', 'hi'],
-  },
-  hello: {
-    dictionary: 'Moyan Sample',
-    headword: 'hello',
-    pronunciation: '/həˈləʊ/',
-    definitions: ['a greeting used when meeting someone'],
-  },
-}
-
 export function App() {
   const [query, setQuery] = useState('你好')
   const [submittedQuery, setSubmittedQuery] = useState('你好')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [history, setHistory] = useState(['你好'])
+  const [results, setResults] = useState<Entry[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
-  const results = useMemo(() => {
-    const entry = sampleEntries[submittedQuery.trim()]
-    return entry ? [entry] : []
+  useEffect(() => {
+    let cancelled = false
+    setIsSearching(true)
+    lookupWord(submittedQuery)
+      .then((entry) => {
+        if (cancelled) return
+        setResults(entry ? [{ ...entry, dictionary: 'CC-CEDICT' }] : [])
+      })
+      .catch(() => {
+        if (!cancelled) setResults([])
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearching(false)
+      })
+    return () => { cancelled = true }
   }, [submittedQuery])
 
   function submitSearch(event: FormEvent) {
@@ -120,19 +118,17 @@ export function App() {
 
         <section className="reading-pane" aria-live="polite">
           <div className="reading-header">
-            <span className="result-kicker">{results.length ? '词条' : '未找到'}</span>
+            <span className="result-kicker">{isSearching ? '查询中' : results.length ? '词条' : '未找到'}</span>
             <span className="result-query">{submittedQuery}</span>
           </div>
           {results.length ? (
             <div className="entries">
               {results.map((entry) => (
-                <article className="entry" key={`${entry.dictionary}-${entry.headword}`}>
+                <article className="entry" key={`${entry.dictionary}-${entry.Headword}`}>
                   <div className="entry-source">{entry.dictionary}</div>
-                  <h1>{entry.headword}</h1>
+                  <h1>{entry.Headword}</h1>
                   {entry.pronunciation && <div className="pronunciation">{entry.pronunciation}</div>}
-                  <div className="entry-body">
-                    {entry.definitions.map((definition) => <p key={definition}>{definition}</p>)}
-                  </div>
+                  <DictionaryFrame html={entry.HTML} />
                 </article>
               ))}
             </div>
@@ -145,5 +141,17 @@ export function App() {
         </section>
       </div>
     </main>
+  )
+}
+
+function DictionaryFrame({ html }: { html: string }) {
+  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; media-src data:"></head><body>${html}</body></html>`
+  return (
+    <iframe
+      className="dictionary-frame"
+      title="词典正文"
+      sandbox=""
+      srcDoc={srcDoc}
+    />
   )
 }
