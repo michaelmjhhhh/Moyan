@@ -1,10 +1,14 @@
 package dictionary
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"mime"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -16,7 +20,10 @@ var (
 	ErrProtectedDictionary = errors.New("protected dictionaries are not supported")
 	ErrNotFound            = errors.New("headword not found")
 
-	maxStylesheetBytes = 2 * 1024 * 1024
+	maxStylesheetBytes       = 2 * 1024 * 1024
+	maxResourceBytes   int64 = 8 * 1024 * 1024
+
+	cssURLPattern = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]+)["']?\s*\)`)
 )
 
 type Entry struct {
@@ -110,9 +117,68 @@ func loadStylesheets(directory string) (string, error) {
 		if styles.Len() > 0 {
 			styles.WriteString("\n")
 		}
-		styles.Write(data)
+		inlined, err := inlineCSSResources(string(data), filepath.Join(directory, name))
+		if err != nil {
+			return "", err
+		}
+		styles.WriteString(inlined)
 	}
 	return styles.String(), nil
+}
+
+func inlineCSSResources(css, stylesheetPath string) (string, error) {
+	directory := filepath.Dir(stylesheetPath)
+	return cssURLPattern.ReplaceAllStringFunc(css, func(match string) string {
+		submatches := cssURLPattern.FindStringSubmatch(match)
+		if len(submatches) != 2 {
+			return `url("")`
+		}
+		reference := strings.TrimSpace(submatches[1])
+		if reference == "" || strings.HasPrefix(strings.ToLower(reference), "data:") {
+			return match
+		}
+		lower := strings.ToLower(reference)
+		if strings.HasPrefix(lower, "http:") || strings.HasPrefix(lower, "https:") || strings.HasPrefix(reference, "//") {
+			return `url("")`
+		}
+		parsed, err := url.Parse(reference)
+		if err != nil || parsed.Path == "" {
+			return `url("")`
+		}
+		resourcePath, err := boundedResourcePath(directory, parsed.Path)
+		if err != nil {
+			return `url("")`
+		}
+		info, err := os.Lstat(resourcePath)
+		if err != nil || !info.Mode().IsRegular() || info.Size() > maxResourceBytes {
+			return `url("")`
+		}
+		data, err := os.ReadFile(resourcePath)
+		if err != nil || int64(len(data)) > maxResourceBytes {
+			return `url("")`
+		}
+		contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(resourcePath)))
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		encoded := base64.StdEncoding.EncodeToString(data)
+		return `url("data:` + contentType + `;base64,` + encoded + `")`
+	}), nil
+}
+
+func boundedResourcePath(directory, reference string) (string, error) {
+	decoded, err := url.PathUnescape(reference)
+	if err != nil {
+		return "", err
+	}
+	decoded = strings.ReplaceAll(decoded, "\\", "/")
+	decoded = strings.TrimLeft(decoded, "/")
+	candidate := filepath.Clean(filepath.Join(directory, filepath.FromSlash(decoded)))
+	relative, err := filepath.Rel(directory, candidate)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
+		return "", errors.New("resource escapes dictionary directory")
+	}
+	return candidate, nil
 }
 
 func (r *Reader) Close() {
