@@ -26,6 +26,8 @@ export function App() {
   const [results, setResults] = useState<Entry[]>([])
   const [candidates, setCandidates] = useState<string[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importStatus, setImportStatus] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -50,14 +52,23 @@ export function App() {
   }, [submittedQuery])
 
   async function importDictionary() {
+    setIsImporting(true)
+    setImportStatus('正在导入词典…')
     try {
       const name = await chooseAndOpenDictionary()
-      if (!name) return
+      if (!name) {
+        setImportStatus('已取消导入')
+        return
+      }
       setDictionaries((current) => current.some((dictionary) => dictionary.name === name)
         ? current
         : [...current, { id: name, name, language: 'MDX', enabled: true }])
-    } catch {
-      // The native dialog and parser report their errors through the Wails shell.
+      setImportStatus(`已导入：${name}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setImportStatus(`导入失败：${message}`)
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -97,7 +108,9 @@ export function App() {
             <section className="sidebar-section">
               <div className="section-heading">
                 <span>词库</span>
-                <button className="text-button" type="button" onClick={importDictionary}>导入</button>
+                <button className="text-button" type="button" onClick={importDictionary} disabled={isImporting}>
+                  {isImporting ? '导入中…' : '导入'}
+                </button>
               </div>
               <div className="dictionary-list">
                 {dictionaries.map((dictionary) => (
@@ -115,6 +128,8 @@ export function App() {
                 ))}
               </div>
             </section>
+
+            {importStatus && <p className="status-message" role="status" aria-live="polite">{importStatus}</p>}
 
             <section className="sidebar-section history-section">
               <div className="section-heading"><span>近期</span></div>
