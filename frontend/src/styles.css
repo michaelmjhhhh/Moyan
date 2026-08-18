@@ -130,7 +130,14 @@ button { color: inherit; }
 .entry-source { color: #1b365d; font-size: 12px; letter-spacing: 0.06em; }
 .entry h1 { margin: 9px 0 4px; color: #1f2a3b; font-family: Georgia, "Times New Roman", serif; font-size: clamp(36px, 5vw, 58px); font-weight: 400; letter-spacing: -0.045em; }
 .pronunciation { color: #77766e; font-family: Georgia, "Times New Roman", serif; font-size: 17px; }
-.dictionary-frame { display: block; width: 100%; min-height: 128px; margin-top: 30px; border: 0; background: transparent; }
+.dictionary-frame {
+  display: block;
+  width: 100%;
+  height: clamp(420px, 62vh, 760px);
+  margin-top: 30px;
+  border: 0;
+  background: transparent;
+}
 .empty-state { padding-top: 90px; color: #68675f; }
 .empty-state p { margin: 0 0 8px; color: #3d403f; font-family: Georgia, "Times New Roman", serif; font-size: 28px; }
 .empty-state span { font-size: 13px; }

@@ -33,7 +33,8 @@ export function App() {
     lookupWord(submittedQuery)
       .then((entry) => {
         if (cancelled) return
-        setResults(entry ? [{ ...entry, dictionary: 'CC-CEDICT' }] : [])
+        const activeDictionary = dictionaries.find((dictionary) => dictionary.enabled)?.name ?? '词典'
+        setResults(entry ? [{ ...entry, dictionary: activeDictionary }] : [])
       })
       .catch(() => {
         if (!cancelled) setResults([])
@@ -42,7 +43,7 @@ export function App() {
         if (!cancelled) setIsSearching(false)
       })
     return () => { cancelled = true }
-  }, [submittedQuery])
+  }, [submittedQuery, dictionaries])
 
   async function importDictionary() {
     try {
