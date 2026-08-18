@@ -143,7 +143,7 @@ export function App() {
                   <div className="entry-source">{entry.dictionary}</div>
                   <h1>{entry.Headword}</h1>
                   {entry.pronunciation && <div className="pronunciation">{entry.pronunciation}</div>}
-                  <DictionaryFrame html={entry.HTML} />
+                  <DictionaryFrame html={entry.HTML} css={entry.CSS} />
                 </article>
               ))}
             </div>
@@ -159,8 +159,9 @@ export function App() {
   )
 }
 
-function DictionaryFrame({ html }: { html: string }) {
-  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; media-src data:"></head><body>${html}</body></html>`
+function DictionaryFrame({ html, css }: { html: string; css: string }) {
+  const safeCss = css.replace(/<\/style/gi, '<\\/style')
+  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; media-src data:"><style>${safeCss}</style></head><body>${html}</body></html>`
   return (
     <iframe
       className="dictionary-frame"

@@ -24,4 +24,7 @@ func TestReaderLooksUpAnExactHeadword(t *testing.T) {
 	if !strings.Contains(entry.HTML, "<p class=\"cc_def\">hello</p>") {
 		t.Fatalf("lookup returned unexpected entry HTML: %q", entry.HTML)
 	}
+	if !strings.Contains(entry.CSS, ".cc_wrapper") {
+		t.Fatalf("lookup did not load the sibling stylesheet: %q", entry.CSS)
+	}
 }

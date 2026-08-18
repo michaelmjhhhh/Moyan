@@ -1,16 +1,19 @@
 export type DictionaryEntry = {
   Headword: string
   HTML: string
+  CSS: string
 }
 
 const browserEntries: Record<string, DictionaryEntry> = {
   '你好': {
     Headword: '你好',
     HTML: '<p>hello</p><p>hi</p>',
+    CSS: '.dictionary-entry { font-family: Georgia, serif; }',
   },
   hello: {
     Headword: 'hello',
     HTML: '<p>a greeting used when meeting someone</p>',
+    CSS: '',
   },
 }
 
