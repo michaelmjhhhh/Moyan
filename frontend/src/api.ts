@@ -16,12 +16,19 @@ const browserEntries: Record<string, DictionaryEntry> = {
 
 type WailsApp = {
   LookupWord(word: string): Promise<DictionaryEntry>
+  ChooseAndOpenDictionary(): Promise<string>
 }
 
 declare global {
   interface Window {
     go?: { main?: { App?: WailsApp } }
   }
+}
+
+export async function chooseAndOpenDictionary(): Promise<string | null> {
+  const app = window.go?.main?.App
+  if (!app) return null
+  return app.ChooseAndOpenDictionary()
 }
 
 export async function lookupWord(word: string): Promise<DictionaryEntry | null> {

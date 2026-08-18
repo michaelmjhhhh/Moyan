@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/michaelmjhhhh/Moyan/pkg/dictionary"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -12,6 +14,7 @@ type App struct {
 
 	mu     sync.RWMutex
 	reader *dictionary.Reader
+	name   string
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -34,7 +37,35 @@ func (a *App) OpenDictionary(path string) error {
 		a.reader.Close()
 	}
 	a.reader = reader
+	a.name = reader.Name()
 	return nil
+}
+
+// ChooseAndOpenDictionary lets the native desktop shell choose one local MDX file.
+// The file picker is intentionally not exposed as a browser-only capability.
+func (a *App) ChooseAndOpenDictionary() (string, error) {
+	if a.ctx == nil {
+		return "", fmt.Errorf("application runtime is not ready")
+	}
+	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "导入词典",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "MDX dictionary (*.mdx)", Pattern: "*.mdx"},
+		},
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if err := a.OpenDictionary(path); err != nil {
+		return "", err
+	}
+	return a.name, nil
+}
+
+func (a *App) CurrentDictionary() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.name
 }
 
 func (a *App) CloseDictionary() {
@@ -44,6 +75,7 @@ func (a *App) CloseDictionary() {
 		a.reader.Close()
 		a.reader = nil
 	}
+	a.name = ""
 }
 
 func (a *App) LookupWord(word string) (dictionary.Entry, error) {

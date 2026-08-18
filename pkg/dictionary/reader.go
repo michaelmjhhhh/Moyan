@@ -41,6 +41,13 @@ func Open(path string) (*Reader, error) {
 	return &Reader{mdx: mdx}, nil
 }
 
+func (r *Reader) Name() string {
+	if r == nil || r.mdx == nil {
+		return ""
+	}
+	return r.mdx.Name()
+}
+
 func (r *Reader) Lookup(headword string) (Entry, error) {
 	if r == nil || r.mdx == nil {
 		return Entry{}, errors.New("dictionary reader is closed")

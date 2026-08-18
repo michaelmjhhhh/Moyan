@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { DictionaryEntry, lookupWord } from './api'
+import { chooseAndOpenDictionary, DictionaryEntry, lookupWord } from './api'
 
 type Dictionary = {
   id: string
@@ -13,7 +13,7 @@ type Entry = DictionaryEntry & {
   pronunciation?: string
 }
 
-const dictionaries: Dictionary[] = [
+const initialDictionaries: Dictionary[] = [
   { id: 'cc-cedict', name: 'CC-CEDICT', language: '中英', enabled: true },
   { id: 'moyan-sample', name: 'Moyan Sample', language: '英英', enabled: false },
 ]
@@ -23,6 +23,7 @@ export function App() {
   const [submittedQuery, setSubmittedQuery] = useState('你好')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [history, setHistory] = useState(['你好'])
+  const [dictionaries, setDictionaries] = useState(initialDictionaries)
   const [results, setResults] = useState<Entry[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
@@ -42,6 +43,19 @@ export function App() {
       })
     return () => { cancelled = true }
   }, [submittedQuery])
+
+  async function importDictionary() {
+    try {
+      const name = await chooseAndOpenDictionary()
+      if (!name) return
+      setDictionaries((current) => [
+        ...current.map((dictionary) => ({ ...dictionary, enabled: false })),
+        { id: name, name, language: 'MDX', enabled: true },
+      ])
+    } catch {
+      // The native dialog and parser report their errors through the Wails shell.
+    }
+  }
 
   function submitSearch(event: FormEvent) {
     event.preventDefault()
@@ -79,7 +93,7 @@ export function App() {
             <section className="sidebar-section">
               <div className="section-heading">
                 <span>词库</span>
-                <button className="text-button" type="button">导入</button>
+                <button className="text-button" type="button" onClick={importDictionary}>导入</button>
               </div>
               <div className="dictionary-list">
                 {dictionaries.map((dictionary) => (
