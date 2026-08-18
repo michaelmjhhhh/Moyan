@@ -23,7 +23,8 @@ var (
 	maxStylesheetBytes       = 2 * 1024 * 1024
 	maxResourceBytes   int64 = 8 * 1024 * 1024
 
-	cssURLPattern = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]+)["']?\s*\)`)
+	cssURLPattern    = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]+)["']?\s*\)`)
+	styleLinkPattern = regexp.MustCompile(`(?i)<link\b[^>]*href=["']([^"']+)["'][^>]*>`)
 )
 
 type Entry struct {
@@ -35,6 +36,7 @@ type Entry struct {
 type Reader struct {
 	mdx        *mdictcore.Mdict
 	mdds       []*mdictcore.Mdict
+	directory  string
 	stylesheet string
 }
 
@@ -63,7 +65,7 @@ func Open(path string) (*Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load dictionary CSS: %w", err)
 	}
-	return &Reader{mdx: mdx, mdds: mdds, stylesheet: stylesheet}, nil
+	return &Reader{mdx: mdx, mdds: mdds, directory: directory, stylesheet: stylesheet}, nil
 }
 
 func (r *Reader) Name() string {
@@ -85,10 +87,12 @@ func (r *Reader) Lookup(headword string) (Entry, error) {
 	if err != nil {
 		return Entry{}, fmt.Errorf("%w: %s", ErrNotFound, trimmed)
 	}
+	htmlText := strings.TrimRight(string(html), "\x00")
+	stylesheet := r.stylesheet + loadLinkedMDDStylesheets(htmlText, r.directory, r.mdds)
 	return Entry{
 		Headword: trimmed,
-		HTML:     strings.TrimRight(string(html), "\x00"),
-		CSS:      r.stylesheet,
+		HTML:     htmlText,
+		CSS:      stylesheet,
 	}, nil
 }
 
@@ -199,6 +203,39 @@ func boundedResourcePath(directory, reference string) (string, error) {
 		return "", errors.New("resource escapes dictionary directory")
 	}
 	return candidate, nil
+}
+
+func loadLinkedMDDStylesheets(html, directory string, mdds []*mdictcore.Mdict) string {
+	seen := make(map[string]struct{})
+	var styles strings.Builder
+	for _, match := range styleLinkPattern.FindAllStringSubmatch(html, -1) {
+		if len(match) != 2 {
+			continue
+		}
+		reference := strings.TrimSpace(match[1])
+		if _, ok := seen[reference]; ok {
+			continue
+		}
+		seen[reference] = struct{}{}
+		data, ok := lookupMDDResource(mdds, reference)
+		if !ok || len(data) == 0 || len(data) > maxStylesheetBytes {
+			continue
+		}
+		inlined, err := inlineCSSResourcesWithLookup(string(data), filepath.Join(directory, filepath.Base(reference)), func(resource string) ([]byte, bool) {
+			return lookupMDDResource(mdds, resource)
+		})
+		if err != nil {
+			continue
+		}
+		if styles.Len() > 0 {
+			styles.WriteString("\n")
+		}
+		styles.WriteString(inlined)
+	}
+	if styles.Len() == 0 {
+		return ""
+	}
+	return "\n" + styles.String()
 }
 
 func loadMDDs(directory string) ([]*mdictcore.Mdict, error) {
