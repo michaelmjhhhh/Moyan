@@ -1,0 +1,24 @@
+# Go
+/bin/
+*.test
+*.out
+
+# Wails/frontend
+frontend/dist/
+frontend/node_modules/
+node_modules/
+
+# Local application data
+*.melev
+*.db
+*.db-shm
+*.db-wal
+
+# Build and release output
+build/bin/
+build/releases/
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
