@@ -11,6 +11,7 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input { font: inherit; }
 button { color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid #1b365d; outline-offset: 3px; }
 
 .app-shell { min-height: 100vh; background: #f5f4ed; }
 
@@ -81,6 +82,7 @@ button { color: inherit; }
   cursor: pointer;
 }
 .search-submit { color: #1b365d; font-size: 20px; }
+.search-submit:disabled { color: #9d9b92; cursor: wait; }
 .quiet-button { margin-left: auto; color: #74736d; font-size: 13px; }
 .quiet-button:hover, .text-button:hover { color: #1b365d; }
 
@@ -101,7 +103,9 @@ button { color: inherit; }
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+.section-actions { display: inline-flex; gap: 12px; }
 .text-button { padding: 0; color: #1b365d; font-size: 12px; }
+.text-button.is-active { text-decoration: underline; text-underline-offset: 4px; }
 .text-button:disabled { color: #9d9b92; cursor: wait; }
 .status-message { margin: 16px 8px 0; color: #68675f; font-size: 11px; line-height: 1.5; }
 .dictionary-list, .history-list { display: grid; gap: 3px; }
@@ -116,7 +120,8 @@ button { color: inherit; }
   text-align: left;
   cursor: pointer;
 }
-.dictionary-item:hover, .history-item:hover, .history-item.is-current { background: #ebe9df; }
+.dictionary-item:hover, .history-item:hover, .history-item.is-current, .dictionary-item.is-selected { background: #ebe9df; }
+.dictionary-item.is-selected { box-shadow: inset 2px 0 #1b365d; }
 .dictionary-item strong { display: block; font-size: 13px; font-weight: 500; }
 .dictionary-item small { display: block; margin-top: 3px; color: #89877e; font-size: 11px; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #b9b6ac; }

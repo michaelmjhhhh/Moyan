@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { chooseAndOpenDictionary, DictionaryEntry, lookupWords, searchCandidates } from './api'
 
 type Dictionary = {
@@ -21,6 +21,7 @@ export function App() {
   const [query, setQuery] = useState('你好')
   const [submittedQuery, setSubmittedQuery] = useState('你好')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [selectedDictionary, setSelectedDictionary] = useState<string | null>(null)
   const [history, setHistory] = useState(['你好'])
   const [dictionaries, setDictionaries] = useState(initialDictionaries)
   const [results, setResults] = useState<Entry[]>([])
@@ -28,6 +29,10 @@ export function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [importStatus, setImportStatus] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const visibleResults = selectedDictionary
+    ? results.filter((entry) => entry.Dictionary === selectedDictionary)
+    : results
 
   useEffect(() => {
     let cancelled = false
@@ -51,6 +56,18 @@ export function App() {
     return () => { cancelled = true }
   }, [submittedQuery])
 
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+      }
+    }
+    window.addEventListener('keydown', handleShortcut)
+    return () => window.removeEventListener('keydown', handleShortcut)
+  }, [])
+
   async function importDictionary() {
     setIsImporting(true)
     setImportStatus('正在导入词典…')
@@ -63,6 +80,7 @@ export function App() {
       setDictionaries((current) => current.some((dictionary) => dictionary.name === name)
         ? current
         : [...current, { id: name, name, language: 'MDX', enabled: true }])
+      setSelectedDictionary(name)
       setImportStatus(`已导入：${name}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -87,17 +105,18 @@ export function App() {
           <span className="wordmark-mark">M</span>
           <span>Moyan</span>
         </button>
-        <form className="search-form" onSubmit={submitSearch}>
+        <form className="search-form" role="search" onSubmit={submitSearch}>
           <label className="search-label" htmlFor="word-search">查词</label>
           <input
             id="word-search"
+            ref={searchInputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="输入词头"
             autoComplete="off"
             spellCheck={false}
           />
-          <button className="search-submit" type="submit" aria-label="搜索">↵</button>
+          <button className="search-submit" type="submit" aria-label="搜索" disabled={isSearching}>↵</button>
         </form>
         <button className="quiet-button" type="button">设置</button>
       </header>
@@ -108,16 +127,21 @@ export function App() {
             <section className="sidebar-section">
               <div className="section-heading">
                 <span>词库</span>
-                <button className="text-button" type="button" onClick={importDictionary} disabled={isImporting}>
-                  {isImporting ? '导入中…' : '导入'}
-                </button>
+                <span className="section-actions">
+                  <button className={`text-button${selectedDictionary === null ? ' is-active' : ''}`} type="button" onClick={() => setSelectedDictionary(null)} aria-pressed={selectedDictionary === null}>全部</button>
+                  <button className="text-button" type="button" onClick={importDictionary} disabled={isImporting}>
+                    {isImporting ? '导入中…' : '导入'}
+                  </button>
+                </span>
               </div>
               <div className="dictionary-list">
                 {dictionaries.map((dictionary) => (
                   <button
-                    className={`dictionary-item${dictionary.enabled ? ' is-enabled' : ''}`}
+                    className={`dictionary-item${dictionary.enabled ? ' is-enabled' : ''}${selectedDictionary === dictionary.name ? ' is-selected' : ''}`}
                     key={dictionary.id}
                     type="button"
+                    aria-pressed={selectedDictionary === dictionary.name}
+                    onClick={() => setSelectedDictionary((current) => current === dictionary.name ? null : dictionary.name)}
                   >
                     <span className="status-dot" aria-hidden="true" />
                     <span>
@@ -151,12 +175,12 @@ export function App() {
 
         <section className="reading-pane" aria-live="polite">
           <div className="reading-header">
-            <span className="result-kicker">{isSearching ? '查询中' : results.length ? '词条' : '未找到'}</span>
+            <span className="result-kicker">{isSearching ? '查询中' : visibleResults.length ? '词条' : '未找到'}</span>
             <span className="result-query">{submittedQuery}</span>
           </div>
-          {results.length ? (
+          {visibleResults.length ? (
             <div className="entries">
-              {results.map((entry) => (
+              {visibleResults.map((entry) => (
                 <article className="entry" key={`${entry.Dictionary}-${entry.Headword}`}>
                   <div className="entry-source">{entry.Dictionary}</div>
                   <h1>{entry.Headword}</h1>
@@ -167,7 +191,7 @@ export function App() {
             </div>
           ) : (
             <div className="empty-state">
-              <p>没有找到“{submittedQuery}”</p>
+              <p>{selectedDictionary && results.length ? `“${selectedDictionary}”中没有找到“${submittedQuery}”` : `没有找到“${submittedQuery}”`}</p>
               {candidates.length > 0 ? (
                 <>
                   <span>你是不是想查：</span>
