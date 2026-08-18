@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
-import { chooseAndOpenDictionary, DictionaryEntry, lookupWords } from './api'
+import { chooseAndOpenDictionary, DictionaryEntry, lookupWords, searchCandidates } from './api'
 
 type Dictionary = {
   id: string
@@ -24,22 +24,28 @@ export function App() {
   const [history, setHistory] = useState(['你好'])
   const [dictionaries, setDictionaries] = useState(initialDictionaries)
   const [results, setResults] = useState<Entry[]>([])
+  const [candidates, setCandidates] = useState<string[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setIsSearching(true)
-    lookupWords(submittedQuery)
-      .then((entries) => {
+    setCandidates([])
+    async function search() {
+      try {
+        const entries = await lookupWords(submittedQuery)
         if (cancelled) return
         setResults(entries)
-      })
-      .catch(() => {
+        if (entries.length === 0) {
+          setCandidates(await searchCandidates(submittedQuery))
+        }
+      } catch {
         if (!cancelled) setResults([])
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsSearching(false)
-      })
+      }
+    }
+    void search()
     return () => { cancelled = true }
   }, [submittedQuery])
 
@@ -147,7 +153,18 @@ export function App() {
           ) : (
             <div className="empty-state">
               <p>没有找到“{submittedQuery}”</p>
-              <span>试试其他词头，或导入一本词典。</span>
+              {candidates.length > 0 ? (
+                <>
+                  <span>你是不是想查：</span>
+                  <div className="candidate-list">
+                    {candidates.map((candidate) => (
+                      <button key={candidate} type="button" onClick={() => { setQuery(candidate); setSubmittedQuery(candidate) }}>
+                        {candidate}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : <span>试试其他词头，或导入一本词典。</span>}
             </div>
           )}
         </section>

@@ -83,6 +83,24 @@ func (a *App) LookupWord(word string) (dictionary.Entry, error) {
 	return entries[0], nil
 }
 
+func (a *App) SearchCandidates(word string) []string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	const perDictionaryLimit = 8
+	var candidates []string
+	seen := make(map[string]struct{})
+	for _, reader := range a.readers {
+		for _, candidate := range reader.Candidates(word, perDictionaryLimit) {
+			if _, ok := seen[candidate]; ok {
+				continue
+			}
+			seen[candidate] = struct{}{}
+			candidates = append(candidates, candidate)
+		}
+	}
+	return candidates
+}
+
 func (a *App) LookupWords(word string) ([]dictionary.Entry, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()

@@ -8,6 +8,26 @@ import (
 	"github.com/michaelmjhhhh/Moyan/pkg/dictionary"
 )
 
+func TestReaderOffersPrefixCandidates(t *testing.T) {
+	reader, err := dictionary.Open(filepath.Join("testdata", "cc-cedict.mdx"))
+	if err != nil {
+		t.Fatalf("open dictionary: %v", err)
+	}
+	defer reader.Close()
+
+	candidates := reader.Candidates("你", 10)
+	found := false
+	for _, candidate := range candidates {
+		if candidate == "你好" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected 你好 prefix candidate, got %#v", candidates)
+	}
+}
+
 func TestReaderLooksUpAnExactHeadword(t *testing.T) {
 	path := filepath.Join("testdata", "cc-cedict.mdx")
 

@@ -39,6 +39,7 @@ type Reader struct {
 	mdds       []*mdictcore.Mdict
 	directory  string
 	stylesheet string
+	headwords  []string
 }
 
 func Open(path string) (*Reader, error) {
@@ -66,7 +67,100 @@ func Open(path string) (*Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load dictionary CSS: %w", err)
 	}
-	return &Reader{mdx: mdx, mdds: mdds, directory: directory, stylesheet: stylesheet}, nil
+	keyEntries, err := mdx.GetKeyWordEntries()
+	if err != nil {
+		return nil, fmt.Errorf("read MDX headwords: %w", err)
+	}
+	headwords := make([]string, 0, len(keyEntries))
+	for _, entry := range keyEntries {
+		headwords = append(headwords, entry.KeyWord)
+	}
+	return &Reader{mdx: mdx, mdds: mdds, directory: directory, stylesheet: stylesheet, headwords: headwords}, nil
+}
+
+func (r *Reader) Candidates(query string, limit int) []string {
+	if r == nil || r.mdx == nil || limit <= 0 {
+		return nil
+	}
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil
+	}
+	queryLower := strings.ToLower(query)
+	result := make([]string, 0, limit)
+	seen := make(map[string]struct{}, limit)
+	appendCandidate := func(word string) bool {
+		if _, ok := seen[word]; ok {
+			return len(result) >= limit
+		}
+		seen[word] = struct{}{}
+		result = append(result, word)
+		return len(result) >= limit
+	}
+	for _, word := range r.headwords {
+		if strings.EqualFold(word, query) && appendCandidate(word) {
+			return result
+		}
+	}
+	for _, word := range r.headwords {
+		if strings.HasPrefix(strings.ToLower(word), queryLower) && appendCandidate(word) {
+			return result
+		}
+	}
+	if len(result) < limit && len([]rune(query)) <= 32 {
+		for _, word := range r.headwords {
+			if distanceAtMost(strings.ToLower(word), queryLower, 2) && appendCandidate(word) {
+				return result
+			}
+		}
+	}
+	return result
+}
+
+func distanceAtMost(left, right string, max int) bool {
+	leftRunes, rightRunes := []rune(left), []rune(right)
+	if absInt(len(leftRunes)-len(rightRunes)) > max {
+		return false
+	}
+	previous := make([]int, len(rightRunes)+1)
+	for i := range previous {
+		previous[i] = i
+	}
+	for i, leftRune := range leftRunes {
+		current := make([]int, len(rightRunes)+1)
+		current[0] = i + 1
+		rowMin := current[0]
+		for j, rightRune := range rightRunes {
+			cost := 0
+			if leftRune != rightRune {
+				cost = 1
+			}
+			current[j+1] = minInt(current[j]+1, previous[j+1]+1, previous[j]+cost)
+			rowMin = minInt(rowMin, current[j+1])
+		}
+		if rowMin > max {
+			return false
+		}
+		previous = current
+	}
+	return previous[len(rightRunes)] <= max
+}
+
+func minInt(values ...int) int {
+	result := values[0]
+	for _, value := range values[1:] {
+		if value < result {
+			result = value
+		}
+	}
+	return result
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
 }
 
 func (r *Reader) Name() string {
@@ -336,5 +430,6 @@ func (r *Reader) Close() {
 	if r != nil {
 		r.mdx = nil
 		r.mdds = nil
+		r.headwords = nil
 	}
 }

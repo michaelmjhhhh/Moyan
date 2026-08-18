@@ -23,6 +23,7 @@ const browserEntries: Record<string, DictionaryEntry> = {
 type WailsApp = {
   LookupWord(word: string): Promise<DictionaryEntry>
   LookupWords(word: string): Promise<DictionaryEntry[]>
+  SearchCandidates(word: string): Promise<string[]>
   ChooseAndOpenDictionary(): Promise<string>
 }
 
@@ -36,6 +37,12 @@ export async function chooseAndOpenDictionary(): Promise<string | null> {
   const app = window.go?.main?.App
   if (!app) return null
   return app.ChooseAndOpenDictionary()
+}
+
+export async function searchCandidates(word: string): Promise<string[]> {
+  const app = window.go?.main?.App
+  if (app) return app.SearchCandidates(word)
+  return Object.keys(browserEntries).filter((entry) => entry.startsWith(word.trim())).slice(0, 8)
 }
 
 export async function lookupWords(word: string): Promise<DictionaryEntry[]> {

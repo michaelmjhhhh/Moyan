@@ -25,3 +25,7 @@ export function LookupWords(arg1) {
 export function OpenDictionary(arg1) {
   return window['go']['main']['App']['OpenDictionary'](arg1);
 }
+
+export function SearchCandidates(arg1) {
+  return window['go']['main']['App']['SearchCandidates'](arg1);
+}

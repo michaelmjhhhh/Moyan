@@ -141,6 +141,9 @@ button { color: inherit; }
 .empty-state { padding-top: 90px; color: #68675f; }
 .empty-state p { margin: 0 0 8px; color: #3d403f; font-family: Georgia, "Times New Roman", serif; font-size: 28px; }
 .empty-state span { font-size: 13px; }
+.candidate-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.candidate-list button { padding: 8px 12px; border: 1px solid #c8c5ba; color: #1b365d; background: transparent; cursor: pointer; font-size: 13px; }
+.candidate-list button:hover { border-color: #1b365d; background: #ebe9df; }
 
 @media (max-width: 680px) {
   .topbar { gap: 16px; padding: 0 18px; }
