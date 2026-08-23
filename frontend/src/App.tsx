@@ -168,21 +168,15 @@ export function App() {
           ? 'miss'
           : 'ready'
 
-  const panelTitle = pane === 'welcome'
-    ? 'Reader'
-    : pane === 'searching'
-      ? submittedQuery
-      : pane === 'miss'
-        ? submittedQuery
-        : result
-          ? result.Headword
-          : 'Reader'
-  const panelMeta = pane === 'welcome' ? 'No dictionary' : dictionaryName
-
   return (
     <main className={`app-shell${sidebarOpen ? '' : ' is-collapsed'}`}>
-      {sidebarOpen && (
-        <aside className="sidebar" aria-label="Library and history">
+      <aside
+        className="sidebar"
+        aria-label="Library and history"
+        aria-hidden={!sidebarOpen}
+        inert={!sidebarOpen ? true : undefined}
+      >
+        <div className="sidebar-inner">
           <header className="sidebar-brand">
             <button className="wordmark" type="button" onClick={() => setSidebarOpen(false)} aria-label="Hide library">
               <img className="wordmark-icon" src={appIcon} alt="" />
@@ -248,8 +242,8 @@ export function App() {
               ))}
             </section>
           </nav>
-        </aside>
-      )}
+        </div>
+      </aside>
 
       <div className="workspace">
         <header className="workspace-bar">
@@ -309,11 +303,11 @@ export function App() {
         </header>
 
         <section className="panel" aria-live="polite" aria-busy={isSearching}>
-          <header className="panel-bar">
-            <span className="nav-dot is-on" aria-hidden="true" />
-            <h1 className="panel-title">{panelTitle}</h1>
-            {panelMeta && <span className="panel-meta">{panelMeta}</span>}
-          </header>
+          {dictionaryName && (
+            <header className="panel-bar">
+              <h1 className="panel-title">{dictionaryName}</h1>
+            </header>
+          )}
           <div className="panel-body">
             {pane === 'welcome' && (
               <div className="empty-state">
