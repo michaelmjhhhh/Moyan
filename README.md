@@ -1,4 +1,20 @@
-# Moyan
+<p align="center">
+  <img src="frontend/src/assets/appicon.png" width="92" height="92" alt="Moyan">
+</p>
+
+<h1 align="center">Moyan</h1>
+
+<p align="center">
+  <a href="https://www.gnu.org/licenses/gpl-3.0.html"><img src="docs/assets/readme/badge-gplv3.svg" alt="GPLv3"></a>
+  &nbsp;
+  <img src="docs/assets/readme/badge-offline.svg" alt="offline">
+  &nbsp;
+  <img src="docs/assets/readme/badge-macos.svg" alt="macOS">
+  &nbsp;
+  <img src="docs/assets/readme/badge-windows.svg" alt="Windows">
+  &nbsp;
+  <img src="docs/assets/readme/badge-mdx.svg" alt="MDX/MDD">
+</p>
 
 Moyan is an offline desktop dictionary reader. It opens dictionary packages you already have on disk, looks up headwords, and shows the matching entry. It does not ship any dictionary content of its own.
 
@@ -8,7 +24,7 @@ Supported platforms are Windows and macOS. The application is GPLv3.
 
 Lookup, indexing, rendering, and resource access stay on-device. The only network use is an update check, and only when the user starts it.
 
-## Behavior
+## <img src="docs/assets/readme/icon-behavior.svg" width="22" height="22" alt="" valign="middle"> Behavior
 
 Import appends a package path to the library. The library is the ordered list of imported paths. A failed import does not change existing records. Duplicate paths are not opened twice. On start, Moyan restores the list from `<user-config-dir>/Moyan/library.json`; missing files on restore are skipped.
 
@@ -20,7 +36,7 @@ Out of scope: bundled or downloaded dictionary content, global lookup, bookmarks
 
 The MDX/MDD parser in `internal/mdictcore` is a source-donor copy. Parser hardening, bounded allocation, checksum validation, and fixture coverage are still required before arbitrary user-supplied packages should be treated as safe to open.
 
-## Implementation
+## <img src="docs/assets/readme/icon-implementation.svg" width="22" height="22" alt="" valign="middle"> Implementation
 
 The desktop host is Wails v2 (Go plus the system webview). The application shell is React, TypeScript, and Vite.
 
@@ -31,7 +47,7 @@ The desktop host is Wails v2 (Go plus the system webview). The application shell
 | `app.go` | Wails bindings and library persistence |
 | `frontend/` | Application shell |
 
-## Build
+## <img src="docs/assets/readme/icon-build.svg" width="22" height="22" alt="" valign="middle"> Build
 
 Requires Go 1.25, Node 22, and Wails v2.10.2.
 
@@ -44,7 +60,7 @@ wails build
 
 Pushing a `v*` tag runs `.github/workflows/release.yml`, which tests, builds a universal Darwin binary, and attaches an unsigned DMG to the GitHub Release. Install steps for that artifact are in `docs/macos-install.md`.
 
-## Third-party sources
+## <img src="docs/assets/readme/icon-sources.svg" width="22" height="22" alt="" valign="middle"> Third-party sources
 
 Moyan reads the MDict package layout (`.mdx` headwords and records, optional `.mdd` binary resources). That format comes from MDict, published by 上海卓越电子科技有限公司. This repository does not include MDict.
 
