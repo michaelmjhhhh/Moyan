@@ -14,12 +14,24 @@ export function CurrentDictionary() {
   return window['go']['main']['App']['CurrentDictionary']();
 }
 
+export function Library() {
+  return window['go']['main']['App']['Library']();
+}
+
+export function LookupIn(arg1, arg2) {
+  return window['go']['main']['App']['LookupIn'](arg1, arg2);
+}
+
 export function LookupWord(arg1) {
   return window['go']['main']['App']['LookupWord'](arg1);
 }
 
 export function OpenDictionary(arg1) {
   return window['go']['main']['App']['OpenDictionary'](arg1);
+}
+
+export function RestoreLibrary() {
+  return window['go']['main']['App']['RestoreLibrary']();
 }
 
 export function SearchCandidates(arg1) {

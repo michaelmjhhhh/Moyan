@@ -1,5 +1,5 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
-import { chooseAndOpenDictionary, DictionaryEntry, lookupWord, searchCandidates } from './api'
+import { chooseAndOpenDictionary, DictionaryEntry, listLibrary, lookupIn, PackageInfo, restoreLibrary, searchCandidates } from './api'
 import { headwordOnSubmit } from './search'
 import appIcon from './assets/appicon.png'
 
@@ -14,7 +14,8 @@ export function App() {
   const [query, setQuery] = useState('')
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [dictionaryName, setDictionaryName] = useState<string | null>(null)
+  const [packages, setPackages] = useState<PackageInfo[]>([])
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [history, setHistory] = useState<string[]>([])
   const [recentOpen, setRecentOpen] = useState(true)
   const [result, setResult] = useState<Entry | null>(null)
@@ -38,9 +39,16 @@ export function App() {
     let cancelled = false
     setIsSearching(true)
     setCandidates([])
+    if (!selectedPath) {
+      setResult(null)
+      setCandidates([])
+      setIsSearching(false)
+      return
+    }
+    const path = selectedPath
     async function search() {
       try {
-        const entry = await lookupWord(submittedQuery)
+        const entry = await lookupIn(path, submittedQuery)
         if (cancelled) return
         setResult(entry)
         if (!entry) {
@@ -57,11 +65,11 @@ export function App() {
     }
     void search()
     return () => { cancelled = true }
-  }, [submittedQuery, dictionaryName])
+  }, [submittedQuery, selectedPath])
 
   useEffect(() => {
     const value = query.trim()
-    if (!value || !dictionaryName) {
+    if (!value || !selectedPath) {
       setSuggestions([])
       setActiveSuggestion(-1)
       return
@@ -77,11 +85,20 @@ export function App() {
       cancelled = true
       window.clearTimeout(handle)
     }
-  }, [query, dictionaryName])
+  }, [query, selectedPath])
 
   useEffect(() => {
-    if (dictionaryName) searchInputRef.current?.focus()
-  }, [dictionaryName])
+    void (async () => {
+      await restoreLibrary()
+      const pkgs = await listLibrary()
+      setPackages(pkgs)
+      if (pkgs.length) setSelectedPath((current) => current ?? pkgs[0].Path)
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (selectedPath) searchInputRef.current?.focus()
+  }, [selectedPath])
 
   useEffect(() => {
     function handleShortcut(event: globalThis.KeyboardEvent) {
@@ -112,7 +129,9 @@ export function App() {
     try {
       const name = await chooseAndOpenDictionary()
       if (!name) return
-      setDictionaryName(name)
+      const pkgs = await listLibrary()
+      setPackages(pkgs)
+      if (pkgs.length) setSelectedPath(pkgs[pkgs.length - 1].Path)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setImportError(`Couldn't import: ${message}`)
@@ -123,7 +142,7 @@ export function App() {
 
   function lookUp(word: string, fromRecent = false) {
     const value = word.trim()
-    if (!value || !dictionaryName) return
+    if (!value || !selectedPath) return
     setQuery(value)
     setSubmittedQuery(value)
     if (!fromRecent) {
@@ -158,7 +177,9 @@ export function App() {
   }
 
   const showSuggestions = suggestOpen && suggestions.length > 0
-  const pane = !dictionaryName
+  const selected = packages.find((item) => item.Path === selectedPath)
+  const dictionaryName = selected?.Name || selected?.Path || null
+  const pane = !selectedPath
     ? 'welcome'
     : isSearching
       ? 'searching'
@@ -191,18 +212,25 @@ export function App() {
                 <button
                   className="nav-action nav-icon-button"
                   type="button"
-                  aria-label={dictionaryName ? 'Replace dictionary' : 'Import dictionary'}
+                  aria-label="Import dictionary"
                   onClick={importDictionary}
                   disabled={isImporting}
                 >
-                  {dictionaryName ? <ReplaceIcon /> : <PlusIcon />}
+                  <PlusIcon />
                 </button>
               </div>
-              {dictionaryName ? (
-                <div className="nav-row is-current">
-                  <span className="nav-dot" aria-hidden="true" />
-                  <span className="nav-title">{dictionaryName}</span>
-                </div>
+              {packages.length > 0 ? (
+                packages.map((item) => (
+                  <button
+                    key={item.Path}
+                    className={`nav-row${item.Path === selectedPath ? ' is-current' : ''}`}
+                    type="button"
+                    onClick={() => setSelectedPath(item.Path)}
+                  >
+                    <span className="nav-dot" aria-hidden="true" />
+                    <span className="nav-title">{item.Name || item.Path}</span>
+                  </button>
+                ))
               ) : (
                 <p className="nav-empty">None open</p>
               )}
@@ -265,14 +293,14 @@ export function App() {
                 }}
                 onFocus={() => setSuggestOpen(true)}
                 onKeyDown={onSearchKeyDown}
-                placeholder={dictionaryName ? 'Look up a word' : 'Import a dictionary first'}
+                placeholder={selectedPath ? 'Look up a word' : 'Import a dictionary first'}
                 autoComplete="off"
                 spellCheck={false}
                 role="combobox"
                 aria-label="Look up a word"
                 aria-autocomplete="list"
                 aria-expanded={showSuggestions}
-                disabled={!dictionaryName}
+                disabled={!selectedPath}
                 aria-controls="word-suggestions"
                 aria-activedescendant={activeSuggestion >= 0 ? `suggestion-${activeSuggestion}` : undefined}
               />
@@ -296,7 +324,7 @@ export function App() {
                 </ul>
               )}
             </div>
-            <button className="search-go" type="submit" disabled={!dictionaryName || isSearching || !query.trim()}>
+            <button className="search-go" type="submit" disabled={!selectedPath || isSearching || !query.trim()}>
               Search
             </button>
           </form>
@@ -403,17 +431,6 @@ function PlusIcon() {
     <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 5v14" />
       <path d="M5 12h14" />
-    </svg>
-  )
-}
-
-function ReplaceIcon() {
-  return (
-    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 12a9 9 0 0 1 15.5-6.4L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-15.5 6.4L3 16" />
-      <path d="M3 21v-5h5" />
     </svg>
   )
 }
