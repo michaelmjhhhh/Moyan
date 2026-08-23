@@ -194,8 +194,14 @@ export function App() {
             <section className="nav-section">
               <div className="nav-label">
                 <span>Library</span>
-                <button className="nav-action" type="button" onClick={importDictionary} disabled={isImporting}>
-                  {isImporting ? '…' : dictionaryName ? 'Replace' : 'Import'}
+                <button
+                  className="nav-action nav-icon-button"
+                  type="button"
+                  aria-label={dictionaryName ? 'Replace dictionary' : 'Import dictionary'}
+                  onClick={importDictionary}
+                  disabled={isImporting}
+                >
+                  {dictionaryName ? <ReplaceIcon /> : <PlusIcon />}
                 </button>
               </div>
               {dictionaryName ? (
@@ -395,6 +401,26 @@ ${safeCss}
         })
       }}
     />
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
+
+function ReplaceIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 12a9 9 0 0 1 15.5-6.4L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15.5 6.4L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
   )
 }
 
