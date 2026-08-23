@@ -5,6 +5,11 @@ export type DictionaryEntry = {
   CSS: string
 }
 
+export type PackageInfo = {
+  Path: string
+  Name: string
+}
+
 const browserEntries: Record<string, DictionaryEntry> = {
   hello: {
     Dictionary: 'Moyan Sample',
@@ -16,8 +21,11 @@ const browserEntries: Record<string, DictionaryEntry> = {
 
 type WailsApp = {
   LookupWord(word: string): Promise<DictionaryEntry>
+  LookupIn(path: string, word: string): Promise<DictionaryEntry>
   SearchCandidates(word: string): Promise<string[]>
   ChooseAndOpenDictionary(): Promise<string>
+  Library(): Promise<PackageInfo[]>
+  RestoreLibrary(): Promise<void>
 }
 
 declare global {
@@ -48,4 +56,28 @@ export async function lookupWord(word: string): Promise<DictionaryEntry | null> 
     }
   }
   return browserEntries[word.trim()] ?? null
+}
+
+export async function lookupIn(path: string, word: string): Promise<DictionaryEntry | null> {
+  const app = window.go?.main?.App
+  if (app?.LookupIn) {
+    try {
+      return await app.LookupIn(path, word)
+    } catch {
+      return null
+    }
+  }
+  return lookupWord(word)
+}
+
+export async function listLibrary(): Promise<PackageInfo[]> {
+  const app = window.go?.main?.App
+  if (!app?.Library) return []
+  return app.Library()
+}
+
+export async function restoreLibrary(): Promise<void> {
+  const app = window.go?.main?.App
+  if (!app?.RestoreLibrary) return
+  await app.RestoreLibrary()
 }

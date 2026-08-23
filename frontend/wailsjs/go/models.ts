@@ -21,3 +21,22 @@ export namespace dictionary {
 
 }
 
+export namespace main {
+	
+	export class PackageInfo {
+	    Path: string;
+	    Name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PackageInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Path = source["Path"];
+	        this.Name = source["Name"];
+	    }
+	}
+
+}
+
