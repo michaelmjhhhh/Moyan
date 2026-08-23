@@ -27,11 +27,13 @@ jobs:
 
       - name: Test
         run: |
-          go test ./...
           cd frontend
           npm ci
           npm run typecheck
           npm test
+          npm run build
+          cd ..
+          go test ./...
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
