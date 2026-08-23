@@ -12,12 +12,11 @@ Moyan is a restrained dictionary reader with a warm editorial character: quiet, 
 
 ## Typography
 
-Use a serif-led hierarchy:
+Set the shell in Newsreader (self-hosted, variable weight). Chinese and other CJK copy falls back to a system serif so Library names stay in the same texture.
 
-- Product name, page titles, headwords, and reading headings use a suitable serif stack.
-- Search fields, buttons, menus, and other controls use the platform system sans-serif stack.
-- The dictionary body remains governed by the imported dictionary CSS where safe; Moyan supplies only readable bounds and fallback controls.
-- The UI ships in Simplified Chinese and English and must keep all interface copy localizable.
+- Labels, controls, empty states, search, and the looked-up headword all use the Newsreader stack.
+- Dictionary body copy stays under the imported package CSS.
+- The UI ships in English. Dictionary entries keep the language of the imported package.
 
 ## Interaction
 

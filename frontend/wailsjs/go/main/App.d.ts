@@ -10,8 +10,6 @@ export function CurrentDictionary():Promise<string>;
 
 export function LookupWord(arg1:string):Promise<dictionary.Entry>;
 
-export function LookupWords(arg1:string):Promise<Array<dictionary.Entry>>;
-
 export function OpenDictionary(arg1:string):Promise<void>;
 
 export function SearchCandidates(arg1:string):Promise<Array<string>>;

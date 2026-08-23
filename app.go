@@ -12,9 +12,9 @@ import (
 type App struct {
 	ctx context.Context
 
-	mu      sync.RWMutex
-	readers []*dictionary.Reader
-	name    string
+	mu     sync.RWMutex
+	reader *dictionary.Reader
+	name   string
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -33,7 +33,10 @@ func (a *App) OpenDictionary(path string) error {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.readers = append(a.readers, reader)
+	if a.reader != nil {
+		a.reader.Close()
+	}
+	a.reader = reader
 	a.name = reader.Name()
 	return nil
 }
@@ -45,7 +48,7 @@ func (a *App) ChooseAndOpenDictionary() (string, error) {
 		return "", fmt.Errorf("application runtime is not ready")
 	}
 	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "导入词典",
+		Title: "Import dictionary",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "MDX dictionary (*.mdx)", Pattern: "*.mdx"},
 		},
@@ -56,7 +59,7 @@ func (a *App) ChooseAndOpenDictionary() (string, error) {
 	if err := a.OpenDictionary(path); err != nil {
 		return "", err
 	}
-	return a.name, nil
+	return a.CurrentDictionary(), nil
 }
 
 func (a *App) CurrentDictionary() string {
@@ -68,51 +71,27 @@ func (a *App) CurrentDictionary() string {
 func (a *App) CloseDictionary() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	for _, reader := range a.readers {
-		reader.Close()
+	if a.reader != nil {
+		a.reader.Close()
+		a.reader = nil
 	}
-	a.readers = nil
 	a.name = ""
 }
 
 func (a *App) LookupWord(word string) (dictionary.Entry, error) {
-	entries, err := a.LookupWords(word)
-	if err != nil {
-		return dictionary.Entry{}, err
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.reader == nil {
+		return dictionary.Entry{}, dictionary.ErrNotFound
 	}
-	return entries[0], nil
+	return a.reader.Lookup(word)
 }
 
 func (a *App) SearchCandidates(word string) []string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	const perDictionaryLimit = 8
-	var candidates []string
-	seen := make(map[string]struct{})
-	for _, reader := range a.readers {
-		for _, candidate := range reader.Candidates(word, perDictionaryLimit) {
-			if _, ok := seen[candidate]; ok {
-				continue
-			}
-			seen[candidate] = struct{}{}
-			candidates = append(candidates, candidate)
-		}
+	if a.reader == nil {
+		return nil
 	}
-	return candidates
-}
-
-func (a *App) LookupWords(word string) ([]dictionary.Entry, error) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	var entries []dictionary.Entry
-	for _, reader := range a.readers {
-		entry, err := reader.Lookup(word)
-		if err == nil {
-			entries = append(entries, entry)
-		}
-	}
-	if len(entries) == 0 {
-		return nil, dictionary.ErrNotFound
-	}
-	return entries, nil
+	return a.reader.Candidates(word, 8)
 }
