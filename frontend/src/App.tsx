@@ -213,12 +213,13 @@ export function App() {
               <div className="nav-label">
                 <span>Recent</span>
                 <button
-                  className="nav-action"
+                  className="nav-action nav-icon-button"
                   type="button"
                   aria-expanded={recentOpen}
+                  aria-label={recentOpen ? 'Hide recent' : 'Show recent'}
                   onClick={() => setRecentOpen((open) => !open)}
                 >
-                  {recentOpen ? 'Hide' : 'Show'}
+                  {recentOpen ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
               {recentOpen && (history.length > 0 ? (
@@ -394,5 +395,25 @@ ${safeCss}
         })
       }}
     />
+  )
+}
+
+function EyeIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function EyeOffIcon() {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.6a3 3 0 0 0 4.2 4.3" />
+      <path d="M9.9 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.2 3.2" />
+      <path d="M6.5 6.5C4 8.3 2 12 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1" />
+    </svg>
   )
 }

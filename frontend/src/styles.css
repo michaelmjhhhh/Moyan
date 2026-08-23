@@ -116,6 +116,23 @@ button:focus-visible, input:focus-visible {
 }
 .nav-action:hover { text-decoration: underline; text-underline-offset: 3px; }
 .nav-action:disabled { color: var(--faint); cursor: wait; text-decoration: none; }
+.nav-icon-button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  text-decoration: none;
+}
+.nav-icon-button:hover { text-decoration: none; color: var(--text); }
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .nav-list {
   margin: 0;
   padding: 0;
