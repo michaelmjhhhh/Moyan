@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Test
+        run: |
+          go test ./...
+          cd frontend
+          npm ci
+          npm run typecheck
+          npm test
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+
+      - name: Build
+        run: wails build -platform darwin/universal
+
+      - name: Package DMG
+        run: bash scripts/package-dmg.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Moyan-macos-dmg
+          path: build/releases/Moyan-*.dmg
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/releases/Moyan-*.dmg
+          generate_release_notes: true
+          body: |
+            Unsigned macOS build. Apple notarization is not used.
+
+            After copying Moyan.app to Applications:
+
+            ```
+            xattr -cr /Applications/Moyan.app
+            ```
+
+            Then open Moyan from Applications. If macOS still blocks it, Control-click the app and choose Open.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
