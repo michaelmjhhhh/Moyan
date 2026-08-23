@@ -20,7 +20,7 @@ Moyan is an offline desktop dictionary reader. It opens dictionary packages you 
 
 A dictionary package is an `.mdx` file plus any sibling resources that package needs: an optional `.mdd`, CSS, images, and audio. Moyan references those files in place. It does not copy them into an internal store.
 
-Supported platforms are Windows and macOS. The application is GPLv3.
+Supported platforms are Windows and macOS. The application is licensed under the GNU General Public License v3 or later. See [LICENSE.md](LICENSE.md).
 
 Lookup, indexing, rendering, and resource access stay on-device. The only network use is an update check, and only when the user starts it.
 
