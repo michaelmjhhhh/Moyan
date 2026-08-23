@@ -50,13 +50,18 @@ button:focus-visible, input:focus-visible {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
   background: var(--canvas);
+  border-radius: 12px;
 }
 .sidebar-brand {
   flex: 0 0 auto;
   padding: 16px 16px 8px;
 }
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -69,6 +74,12 @@ button:focus-visible, input:focus-visible {
   text-align: left;
 }
 .wordmark.compact { margin: 0 12px 0 0; font-size: 20px; }
+.wordmark-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: cover;
+}
 
 .sidebar-nav {
   display: flex;
@@ -169,7 +180,9 @@ button:focus-visible, input:focus-visible {
   gap: 12px;
   min-height: 52px;
   padding: 8px 12px;
+  overflow: hidden;
   background: var(--canvas);
+  border-radius: 12px;
 }
 .search-form {
   display: flex;
@@ -187,6 +200,7 @@ button:focus-visible, input:focus-visible {
   height: 36px;
   padding: 0 12px;
   background: var(--well);
+  border-radius: 8px;
 }
 .search-well input {
   flex: 1;
@@ -208,6 +222,7 @@ button:focus-visible, input:focus-visible {
   height: 36px;
   padding: 0 14px;
   border: 0;
+  border-radius: 8px;
   color: #f3efe4;
   background: var(--ink);
   font-size: 14px;
@@ -251,6 +266,8 @@ button:focus-visible, input:focus-visible {
   flex-direction: column;
   min-height: 0;
   margin: 0;
+  overflow: hidden;
+  border-radius: 12px;
   background: var(--canvas);
 }
 .panel-bar {
@@ -297,6 +314,7 @@ button:focus-visible, input:focus-visible {
   min-height: 40px;
   padding: 0 16px;
   border: 1px solid var(--ink);
+  border-radius: 8px;
   color: #f3efe4;
   background: var(--ink);
   font-size: 16px;

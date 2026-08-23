@@ -1,6 +1,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { chooseAndOpenDictionary, DictionaryEntry, lookupWord, searchCandidates } from './api'
 import { headwordOnSubmit } from './search'
+import appIcon from './assets/appicon.png'
 
 type Entry = DictionaryEntry & {
   pronunciation?: string
@@ -184,6 +185,7 @@ export function App() {
         <aside className="sidebar" aria-label="Library and history">
           <header className="sidebar-brand">
             <button className="wordmark" type="button" onClick={() => setSidebarOpen(false)} aria-label="Hide library">
+              <img className="wordmark-icon" src={appIcon} alt="" />
               Moyan
             </button>
           </header>
@@ -246,6 +248,7 @@ export function App() {
         <header className="workspace-bar">
           {!sidebarOpen && (
             <button className="wordmark compact" type="button" onClick={() => setSidebarOpen(true)} aria-label="Show library">
+              <img className="wordmark-icon" src={appIcon} alt="" />
               Moyan
             </button>
           )}
