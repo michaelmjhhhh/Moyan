@@ -105,7 +105,6 @@ button:focus-visible, input:focus-visible {
 }
 .nav-action:hover { text-decoration: underline; text-underline-offset: 3px; }
 .nav-action:disabled { color: var(--faint); cursor: wait; text-decoration: none; }
-.nav-count { color: var(--faint); font-size: 13px; }
 .nav-list {
   margin: 0;
   padding: 0;
@@ -173,6 +172,9 @@ button:focus-visible, input:focus-visible {
   background: var(--canvas);
 }
 .search-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: 1;
   min-width: 0;
 }
@@ -180,11 +182,11 @@ button:focus-visible, input:focus-visible {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex: 1;
+  min-width: 0;
   height: 36px;
-  padding: 0 4px 0 8px;
-  background: transparent;
-  border: 0;
+  padding: 0 12px;
+  background: var(--well);
 }
 .search-well input {
   flex: 1;
@@ -201,11 +203,10 @@ button:focus-visible, input:focus-visible {
 .search-well input:disabled { color: var(--faint); }
 .search-well input:focus,
 .search-well input:focus-visible { outline: none; }
-.search-well:focus-within { background: var(--well); }
 .search-go {
   flex: 0 0 auto;
-  height: 30px;
-  padding: 0 12px;
+  height: 36px;
+  padding: 0 14px;
   border: 0;
   color: #f3efe4;
   background: var(--ink);

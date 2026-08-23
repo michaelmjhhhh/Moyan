@@ -1,5 +1,6 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { chooseAndOpenDictionary, DictionaryEntry, lookupWord, searchCandidates } from './api'
+import { headwordOnSubmit } from './search'
 
 type Entry = DictionaryEntry & {
   pronunciation?: string
@@ -14,6 +15,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [dictionaryName, setDictionaryName] = useState<string | null>(null)
   const [history, setHistory] = useState<string[]>([])
+  const [recentOpen, setRecentOpen] = useState(true)
   const [result, setResult] = useState<Entry | null>(null)
   const [candidates, setCandidates] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -118,12 +120,14 @@ export function App() {
     }
   }
 
-  function lookUp(word: string) {
+  function lookUp(word: string, fromRecent = false) {
     const value = word.trim()
     if (!value || !dictionaryName) return
     setQuery(value)
     setSubmittedQuery(value)
-    setHistory((current) => [value, ...current.filter((item) => item !== value)].slice(0, 12))
+    if (!fromRecent) {
+      setHistory((current) => current.includes(value) ? current : [value, ...current].slice(0, 12))
+    }
     setSuggestions([])
     setActiveSuggestion(-1)
     setSuggestOpen(false)
@@ -131,8 +135,7 @@ export function App() {
 
   function submitSearch(event: FormEvent) {
     event.preventDefault()
-    const highlighted = activeSuggestion >= 0 ? suggestions[activeSuggestion] : undefined
-    lookUp(highlighted || query)
+    lookUp(headwordOnSubmit(query, suggestions, activeSuggestion))
   }
 
   function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -207,16 +210,23 @@ export function App() {
             <section className="nav-section nav-grow">
               <div className="nav-label">
                 <span>Recent</span>
-                {history.length > 0 && <span className="nav-count">{history.length}</span>}
+                <button
+                  className="nav-action"
+                  type="button"
+                  aria-expanded={recentOpen}
+                  onClick={() => setRecentOpen((open) => !open)}
+                >
+                  {recentOpen ? 'Hide' : 'Show'}
+                </button>
               </div>
-              {history.length > 0 ? (
+              {recentOpen && (history.length > 0 ? (
                 <ul className="nav-list">
                   {history.map((item) => (
                     <li key={item}>
                       <button
-                        className={`nav-row${item === submittedQuery ? ' is-current' : ''}`}
+                        className="nav-row"
                         type="button"
-                        onClick={() => lookUp(item)}
+                        onClick={() => lookUp(item, true)}
                       >
                         <span className="nav-dot" aria-hidden="true" />
                         <span className="nav-title">{item}</span>
@@ -226,7 +236,7 @@ export function App() {
                 </ul>
               ) : (
                 <p className="nav-empty">No lookups yet</p>
-              )}
+              ))}
             </section>
           </nav>
         </aside>
@@ -262,9 +272,6 @@ export function App() {
                 aria-controls="word-suggestions"
                 aria-activedescendant={activeSuggestion >= 0 ? `suggestion-${activeSuggestion}` : undefined}
               />
-              <button className="search-go" type="submit" disabled={!dictionaryName || isSearching || !query.trim()}>
-                Search
-              </button>
               {showSuggestions && (
                 <ul className="suggestion-list" id="word-suggestions" role="listbox">
                   {suggestions.map((item, index) => (
@@ -285,6 +292,9 @@ export function App() {
                 </ul>
               )}
             </div>
+            <button className="search-go" type="submit" disabled={!dictionaryName || isSearching || !query.trim()}>
+              Search
+            </button>
           </form>
         </header>
 
